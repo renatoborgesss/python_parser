@@ -42,7 +42,7 @@ def isSIGNAL_WORDS_XOR(idx,val,doc):
         if "not" == str(z).lower(): 
             #print("passo por aqui 3")
             return True
-    elif "if" == str(val).lower()  or "otherwise"  == str(val).lower() or "either"  == str(val).lower() or  "only"  == str(val).lower() or "till"  == str(val).lower() or "until"  == str(val).lower() or "when"  == str(val).lower():
+    elif "if" == str(val).lower()  or "whether" == str(val).lower() or  "otherwise"  == str(val).lower() or "either"  == str(val).lower() or  "only"  == str(val).lower() or "till"  == str(val).lower() or "until"  == str(val).lower() or "when"  == str(val).lower():
         #print("passo por aqui 4")
         return True
     
@@ -100,13 +100,16 @@ def isSIGNAL_WORDS_AND(idx,val,doc):
 def Go_Rules_Activity_Event(doc):
 	#print ("sentenca3---"+ str (sent))
 	Main_Verb = Definition_Main_Verb_Activity_or_Event (doc)
-	Result_Verb_Tense = Definition_Verb_tense_Main_Verb(Main_Verb) 
+	Result_Verb_Tense = Definition_Verb_tense_Main_Verb(Main_Verb,doc) 
 	if (Result_Verb_Tense == TIPO_SENTENCA_Activity):
-		Go_Rules_Activity (doc)
+		if (Execute_Rules_Activity (doc)==True):
+			print ("Is Activity")
+		
 		#FAZENDO AQUI
 	else:
 		Go_Rules_Event (doc)
-	#PAREI AQUI
+		print("Is Event")
+	#Não Fiz aqui
 
 
         
@@ -119,7 +122,7 @@ def Definition_Main_Verb_Activity_or_Event (doc):
 			Main_Verb1=word
 			return Main_Verb1
 
-def Definition_Verb_tense_Main_Verb (Main_Verb):
+def Definition_Verb_tense_Main_Verb (Main_Verb,doc):
 	# aqui eu vejo qual tempo verbal é o verbo principal 
 
 	#VB Verb, base form
@@ -129,9 +132,23 @@ def Definition_Verb_tense_Main_Verb (Main_Verb):
 	#VBP Verb, non-3rd person singular present
 	# VBZ Verb, 3rd person singular present
 	    
-	if (Main_Verb.tag_ == "VBP" or Main_Verb.tag_ == "VBZ" or Main_Verb.tag_ == "VB"):
+	#print ("MAIN VERG-> "+str (Main_Verb.text_with_ws))
+	#print ("TAG- MAIN VERB->"+ str(Main_Verb.tag_))
+	to_be = False
+	for idx, val in enumerate (doc):
+		print("valor->"+str(val))
+		if "is"  == str(val).lower() or "are"  == str(val).lower():
+			print ("doc[idx].head->"+str(doc[idx].head))
+			print ("Main_Verb->"+ str (Main_Verb))
+			if (doc[idx].dep_ in ('auxpass') and doc[idx].head == Main_Verb):
+				to_be=True
+				break
+
+
+	if (Main_Verb.tag_ == "VBP" or Main_Verb.tag_ == "VBZ" or Main_Verb.tag_ == "VB" or to_be==True):
+		
 		return TIPO_SENTENCA_Activity
-	elif (Main_Verb.tag_ == "VBD" or Main_Verb.tag_ == "VBN" ):
+	elif (Main_Verb.tag_ == "VBD" or Main_Verb.tag_ == "VBN" or to_be==False):
 		return TIPO_SENTENCA_Event
 
 #-------------------------------------------------------REGRAS ATIVIDADES--------------------------------------------------------------
@@ -150,13 +167,13 @@ def Get_indice_Sub_Obj_rule_1 (doc):
 			
 			#indice do verbo
 			if (str(doc[indice])) in (str(doc[indice].head)) and  doc[indice].dep_ in ('ROOT'):
-				print ("entrou aqui 1")
+				#print ("entrou aqui 1")
 				print("Verbo----->" + str(doc[indice]))
 				indice_verbo=indice
 	for indice, conteudo in enumerate (doc):
 			#indice do sujeito
-			if doc[indice].dep_ in ('nsubj' , 'csubj'):
-				print ("entrou aqui 2")
+			if doc[indice].dep_ in ('nsubj' , 'csubj','nsubjpass','xsubj','agent','csubjpass'):
+				#print ("entrou aqui 2")
 				sujeito = ''.join(w.text_with_ws for w in doc[indice].subtree)
 				indice_sujeito=indice
 				print ('sujeito: ' + sujeito)
@@ -168,20 +185,30 @@ def Get_indice_Sub_Obj_rule_1 (doc):
 
 			#indice do objeto
 	for indice, conteudo in enumerate (doc):
-		if doc[indice].dep_ in ('dobj', 'iobj'):
-			print ("entrou aqui 3")
+		if doc[indice].dep_ in ('dobj', 'iobj','advcl', 'advcmod','pobj','oprd'):
+			#print ("entrou aqui 3")
 			obj=''.join(w.text_with_ws for w in doc[indice].subtree)
 			#print (word.subtree[0].text_with_ws)
 			print('objeto: ' + obj)
 			indice_objeto=indice
-			for w in doc[indice].subtree:
-				if w.dep_ in ('dobj', 'iobj'):
-					print ("entrou aqui 4")
-					print ("verbo: " + doc[indice].head.text_with_ws)
-					print ("-->" + w.text_with_ws)
+			#for w in doc[indice].subtree:
+				#if w.dep_ in ('dobj', 'iobj'):
+					#print ("entrou aqui 4")
+					#print ("verbo: " + doc[indice].head.text_with_ws)
+					#print ("-->" + w.text_with_ws)
 		
-			#achar_verbo_arvore(word.head)
-	if (indice_verbo==None or indice_sujeito==None or indice_objeto==None):
+			
+	# verificar se há conjunção na frase, se houver entao nao é esta regra e sim a regra 4
+	other_rule=False
+	for indice, conteudo in enumerate (doc):
+		if doc[indice].dep_ in ('conj', 'cc', 'in'):
+			#Get_rule_4 (doc)
+			print("conjunção")
+			other_rule=True
+			break
+
+	print ("indices- SVO->"+ str (indice_sujeito) + str (indice_verbo) + str(indice_objeto))
+	if (indice_verbo==None or indice_sujeito==None or indice_objeto==None or other_rule==True):
 		result_indice = [indice_verbo,indice_sujeito,indice_objeto,ERROR]
 	else:
 		result_indice = [indice_verbo,indice_sujeito,indice_objeto,-1]
@@ -213,16 +240,16 @@ def Get_indice_Sub_Obj_rule_2 (doc):
 			
 			#indice do verbo
 			if (str(doc[indice])) in (str(doc[indice].head)) and  doc[indice].dep_ in ('ROOT'):
-				print ("entrou aqui 1")
+				#print ("entrou aqui 1")
 				print("Verbo----->" + str(doc[indice]))
 				indice_verbo=indice
 	for indice, conteudo in enumerate (doc):
 				#indice do sujeito
-				if doc[indice].dep_ in ('nsubj' , 'csubj'):
-					print ("entrou aqui 2")
+				if doc[indice].dep_ in ('nsubj' , 'csubj','nsubjpass','xsubj','agent','csubjpass'):
+					#print ("entrou aqui 2")
 					sujeito = ''.join(w.text_with_ws for w in doc[indice].subtree)
 					indice_sujeito=indice
-					print ("indice sujeito " + str(indice_sujeito))
+					#print ("indice sujeito " + str(indice_sujeito))
 					print ('sujeito: ' + sujeito)
 				
 	
@@ -231,19 +258,19 @@ def Get_indice_Sub_Obj_rule_2 (doc):
 		#Advérbio é uma palavra invariável que modifica o sentido do verbo, do adjetivo e do próprio advérbio.
 		#ADVCL Adverbial clause modifier 
 		#ADVMOD Adverbial modifier
-		if (doc[indice].dep_ in ('dobj', 'iobj','advcl', 'advcmod')):
-			print ("entrou aqui 3")
+		if (doc[indice].dep_ in ('dobj', 'iobj','advcl', 'advcmod','pobj','oprd')):
+			#print ("entrou aqui 3")
 			obj=''.join(w.text_with_ws for w in doc[indice].subtree)
 			#print (word.subtree[0].text_with_ws)
 			print('objeto: ' + obj)
 			indice_objeto=indice
 			for w in doc[indice].subtree:
 				if w.dep_ in ('dobj', 'iobj'):
-					print ("entrou aqui 4")
-					print ("verbo: " + doc[indice].head.text_with_ws)
+					#print ("entrou aqui 4")
+					#print ("verbo: " + doc[indice].head.text_with_ws)
 					#print ("-->" + w.text_with_ws)
 					break
-			print("indice_objeto-->" +str (indice_objeto))
+			#print("indice_objeto-->" +str (indice_objeto))
 
 	for indice, conteudo in enumerate (doc):    
 		if "will"  == str(conteudo).lower():
@@ -278,7 +305,7 @@ def Get_indice_Sub_Obj_rule_3(doc):
 			
 			#indice do verbo
 		if (str(doc[indice])) in (str(doc[indice].head)) and  doc[indice].dep_ in ('ROOT'):
-			print ("entrou aqui 1.3")
+			#print ("entrou aqui 1.3")
 			print("Verbo----->" + str(doc[indice]))
 			indice_verbo=indice
 	for indice, conteudo in enumerate (doc):
@@ -286,15 +313,15 @@ def Get_indice_Sub_Obj_rule_3(doc):
 		#Advérbio é uma palavra invariável que modifica o sentido do verbo, do adjetivo e do próprio advérbio.
 		#ADVCL Adverbial clause modifier 
 		#ADVMOD Adverbial modifier
-		if (doc[indice].dep_ in ('dobj', 'iobj','advcl', 'advcmod')):
-			print ("entrou aqui 3.3")
+		if (doc[indice].dep_ in ('dobj', 'iobj','advcl', 'advcmod','pobj')):
+			#print ("entrou aqui 3.3")
 			obj=''.join(w.text_with_ws for w in doc[indice].subtree)
 			#print (word.subtree[0].text_with_ws)
 			print('objeto: ' + obj)
 			indice_objeto=indice
 			for w in doc[indice].subtree:
 				if w.dep_ in ('dobj', 'iobj'):
-					print ("entrou aqui 4.4")
+					#print ("entrou aqui 3.3")
 					print ("verbo: " + doc[indice].head.text_with_ws)
 					#print ("-->" + w.text_with_ws)
 					break
@@ -302,123 +329,479 @@ def Get_indice_Sub_Obj_rule_3(doc):
 	for indice, conteudo in enumerate (doc):    
 		if (doc[indice].dep_ in ('DT', 'det') or "a"  == str(conteudo).lower() or "an"  == str(conteudo).lower()):
 			indice_article=indice
-			print("indice_artigo--->"+ str(indice_article))
-			print ("artigo-->" + str(conteudo))
+			#print("indice_artigo--->"+ str(indice_article))
+			#print ("artigo-->" + str(conteudo))
 			break
 
-	print ("V->"+str(indice_verbo))		
-	print ("a->"+str(indice_article))	
-	print ("O->"+str(indice_objeto))	
+	#print ("V->"+str(indice_verbo))		
+	#print ("a->"+str(indice_article))	
+	#print ("O->"+str(indice_objeto))	
 	if (indice_verbo==None or indice_article==None or indice_objeto==None):
 		result_indice = [indice_verbo,indice_article,indice_objeto,ERROR]
 	else:
 		result_indice = [indice_verbo,indice_article,indice_objeto,-1]
 	return result_indice
 
-def Go_Rules_Activity(doc):	
+
+
+def Get_rule_4(doc):
 	
+	ERROR=1000
+	#Se o lado esquerdo ou direito for verdadeiro é tarefa senao não é tarefa
+	Left= False
+	Right = False
+	for idx, val in enumerate (doc):
+		if (("and" == str(val).lower() or "or" == str(val).lower()) and idx > 2):
+			
+			vetor_all= sent.split('and')
+			String_vetor_left=vetor_all[0]
+			String_vetor_right= vetor_all[1]
+			# colocando cada frase em um doc para verificar se a frase do lado direito ou esquerdo é realmente uma tarefa
+			doc_Left = nlp(String_vetor_left)
+			doc_Right = nlp(String_vetor_right)
+
+
+			#------------------------------------VERIFICA REGRA 1
+
+			#------------------------------------LEFT ------------------
+			vetor_result_indice_rule1= Get_indice_Sub_Obj_rule_1(doc_Left)
+			Result_rule_1= Check_vetor_rule_1 (vetor_result_indice_rule1)
+			if (Result_rule_1 == True):					
+					Activity=True
+					Left=True
+					print ("LEFTTTTTTTTTT")
+					
+			#------------------------------------RIGHT --------------------		
+			vetor_result_indice_rule1= Get_indice_Sub_Obj_rule_1(doc_Right)
+			Result_rule_1= Check_vetor_rule_1 (vetor_result_indice_rule1)
+			if (Result_rule_1 == True):				
+					Activity=True
+					Right=True
+					print ("Rightttttttttt")
+					
+			#------------------------------------VERIFICA REGRA 2
+			#------------------------------------LEFT ------------------		
+			if (Left==False):				
+				vetor_result_indice_rule2= Get_indice_Sub_Obj_rule_2(doc_Left)
+				Result_rule_2= Check_vetor_rule_2(vetor_result_indice_rule2)
+				if (Result_rule_2 == True):						
+					Activity=True
+					Left=True
+					print ("LEFTTTTTTTTTT")
+					
+			#------------------------------------RIGHT ------------------		
+			if (Right==False):
+				vetor_result_indice_rule2= Get_indice_Sub_Obj_rule_2(doc_Right)
+				Result_rule_2= Check_vetor_rule_2(vetor_result_indice_rule2)
+				if (Result_rule_2 == True):						
+					Activity=True
+					Right=True
+					print ("Rightttttttttt")						
+						
+			#------------------------------------VERIFICA REGRA 3 
+			#------------------------------------LEFT ------------------	
+			if (Left==False):
+				vetor_result_indice_rule3= Get_indice_Sub_Obj_rule_3(doc_Left)
+				Result_rule_3= Check_vetor_rule_3 (vetor_result_indice_rule3)
+				if (Result_rule_3 == True):						
+					Activity=True
+					Left=True
+					print ("LEFTTTTTTTTTT")
+						
+			#------------------------------------Right ------------------	
+			if (Right==False):
+				vetor_result_indice_rule3= Get_indice_Sub_Obj_rule_3(doc_Right)
+				Result_rule_3= Check_vetor_rule_3 (vetor_result_indice_rule3)
+				if (Result_rule_3 == True):						
+					Activity=True
+					Right=True
+					print ("Rightttttttttt")
+			break
+
+	if (Left == True and Right ==True):
+	 	print("OK")
+	 	return True
+	else:
+		print ("FALSE")
+		return False
+def Get_rule_6 (doc):
+	indice_verbo=None
+	indice_sujeito=None
+	indice_objeto=None
+	ERROR=1000
+	for indice, conteudo in enumerate (doc):
+			#print (''+dependency_labels_to_root(word)[0])
+			#print word.text_with_ws 
+			#print  dependency_labels_to_root(word)
+			#print word.text_with_ws + ' '+word.tag_
+			
+			#indice do verbo
+			if (str(doc[indice])) in (str(doc[indice].head)) and  doc[indice].dep_ in ('ROOT'):
+				#print ("entrou aqui 1")
+				print("Verbo----->" + str(doc[indice]))
+				indice_verbo=indice
+	for indice, conteudo in enumerate (doc):
+			#indice do sujeito
+			if doc[indice].dep_ in ('nsubj' , 'csubj','nsubjpass','xsubj','agent','csubjpass') and doc[indice].tag_ in ('NN') :
+				#print ("entrou aqui 2")
+				sujeito = ''.join(w.text_with_ws for w in doc[indice].subtree)
+				indice_sujeito=indice
+				print ('sujeito: ' + sujeito)
+
+
+			#if word.tag_ in ('VBZ'):
+			#    print ('verb:' + word.text_with_ws)
+			#   print(''.join(w.text_with_ws for w in word.subtree))
+
+			#indice do objeto
+	for indice, conteudo in enumerate (doc):
+		if doc[indice].dep_ in ('dobj', 'iobj','advcl', 'advcmod','pobj','oprd') and doc[indice].tag_ in ('NN') :
+			#print ("entrou aqui 3")
+			obj=''.join(w.text_with_ws for w in doc[indice].subtree)
+			#print (word.subtree[0].text_with_ws)
+			print('objeto: ' + obj)
+			indice_objeto=indice
+			#for w in doc[indice].subtree:
+				#if w.dep_ in ('dobj', 'iobj'):
+					#print ("entrou aqui 4")
+					#print ("verbo: " + doc[indice].head.text_with_ws)
+					#print ("-->" + w.text_with_ws)
+		
+			
+	# verificar se há conjunção na frase, se houver entao nao é esta regra e sim a regra 4
+	Rule4=False
+	for indice, conteudo in enumerate (doc):
+		if doc[indice].dep_ in ('conj', 'cc', 'in'):
+			#Get_rule_4 (doc)
+			print("conjunção")
+			Rule4=True
+			break
+
+	#print ("indices- SVO->"+ str (indice_sujeito) + str (indice_verbo) + str(indice_objeto))
+	if (indice_verbo==None or indice_sujeito==None or indice_objeto==None or Rule4==True):
+		result_indice = [indice_verbo,indice_sujeito,indice_objeto,ERROR]
+	else:
+		result_indice = [indice_verbo,indice_sujeito,indice_objeto,-1]
+
+	return result_indice	
+
+
+
+
+
+	result_indice = [indice_verbo,indice_sujeito,indice_objeto]
+	return result_indice
+#------------- regra 11 .Doc ---------------------
+def Get_rule_11 (doc):
+	ERROR=1000
+	#Se o lado esquerdo ou direito for verdadeiro é tarefa senao não é tarefa
+	Left= False
+	Right = False
+	indice_verbo_left = None
+	indice_verbo_right= None
+	indice_objeto_right= None
+
+	for idx, val in enumerate (doc):
+		if (("and" == str(val).lower() or "or" == str(val).lower()) and idx > 2):
+			
+			vetor_all= sent.split('and')
+			String_vetor_left=vetor_all[0]
+			String_vetor_right= vetor_all[1]
+			# colocando cada frase em um doc para verificar se a frase do lado direito ou esquerdo é realmente uma tarefa
+			doc_Left = nlp(String_vetor_left)
+			doc_Right = nlp(String_vetor_right)
+			print ("string right->" + String_vetor_right)
+			#verbo esquerdo
+			Testes_Aqui (doc_Right)
+			Testes_Aqui (doc_Left)
+			for indice, conteudo in enumerate (doc_Left):
+				print ("entrou aqui 11.1")
+				
+				if (doc_Left[indice].tag_=='VBP' or doc_Left[indice].tag_ == 'VBZ'  or doc_Left[indice].tag_ == 'VB' ):
+					print ("entrou aqui 11.2")
+					indice_verbo_left= indice
+					break
+			#verbo direito
+			for indice, conteudo in enumerate (doc_Right): 
+				if (doc_Right[indice].dep_ in ('ROOT') or doc_Right[indice].tag_=='VBP' or doc_Right[indice].tag_ == 'VBZ'  or doc_Right[indice].tag_ == 'VB' ):
+					print ("entrou aqui 11.3")
+					indice_verbo_right = indice
+					break
+				
+			#OBJETO
+			for indice, conteudo in enumerate (doc_Right): 
+				print ("dep11->"+ str (doc_Right[indice].dep_))
+				if doc_Right[indice].dep_ in ('dobj', 'iobj','advcl', 'advcmod','pobj','oprd') or doc_Right[indice].tag_=='NN':
+			
+					obj=''.join(w.text_with_ws for w in doc_Right[indice].subtree)
+					#print (word.subtree[0].text_with_ws)
+					print('objeto11: ' + obj)
+					indice_objeto_right=indice	
+			break
 	
-	control=1
+	print ("indices verbo e obj->" + str (indice_verbo_left)+str (indice_verbo_right)+str (indice_objeto_right) )
+	if (indice_verbo_left==None or indice_verbo_right==None or indice_objeto_right==None):
+		result_indice = [indice_verbo_left,indice_verbo_right,indice_objeto_right,ERROR]
+	else:
+		result_indice = [indice_verbo_left,indice_verbo_right,indice_objeto_right,-1]
+	return result_indice		
+
+
+#---------------------CHECKS VETOR --------------
+def Check_vetor_rule_1 (vetor):
+	ERROR=1000
+
+	#pega a posicao do ERRO la no vetor resultante que vem do DEF Get_indice_Sub_Obj_rule_1(doc)
+	if (vetor[3] == ERROR):
+		print ("entrou aqui 1.flag")
+		print ("R1- ERROR")
+		
+		return False
+		
+	else:
+		#Deu CERTO
+		indice_verbo2 = vetor[0]
+		indice_sujeito2=vetor[1]
+		indice_objeto2= vetor[2]
+		
+		if (indice_sujeito2<indice_verbo2 and indice_verbo2<indice_objeto2):
+			#regra 1
+			print("Regra do SVO")
+			print("Sentença: "+ sent)
+			print("-------------------------")
+			print("Indica-se uma Tarefa ")
+			print("-------------------------")
+			return True
+		else:
+			print ("R1- ERROR")
+			return False
+
+def Check_vetor_rule_2 (vetor):
+	ERROR=1000
+	if (vetor[4] == ERROR):
+		print ("entrou aqui 2.flag")
+		print ("R2- ERROR")
+		return False
+
+	else:
+
+		indice_verbo2 = vetor[0]
+		indice_sujeito2 =vetor[1]
+		indice_objeto2=vetor[2]
+		indice_will = vetor[3]
+		
+		if (indice_sujeito2<indice_will and indice_will < indice_verbo2 and indice_verbo2 < indice_objeto2):
+			print("Regra do WILL")
+			print ("Sentença: "+ sent)
+			print("-------------------------")
+			print ("Indica-se uma Tarefa ") 
+			print("-------------------------")
+			return True
+		else:
+			print ("R2- ERROR")
+			return False
+
+def Check_vetor_rule_3 (vetor):
+	ERROR=1000
+	if (vetor[3] == ERROR):
+				print ("entrou aqui 3.flag")
+				print ("R3- ERROR")
+				return False
+		
+	else:	
+
+		indice_verbo3 = vetor[0]
+		indice_article3=vetor[1]
+		indice_objeto3= vetor[2]
+
+		if (indice_verbo3<indice_article3 and indice_article3<indice_objeto3):
+			print("Regra do VAO")
+			print("Sentença: "+ sent)
+			print("-------------------------")
+			print("Indica-se uma Tarefa ")
+			print("-------------------------")
+			return True
+		else:
+			print ("R3- ERROR")
+			return False
+
+def Check_vetor_rule_6(vetor):
+	ERROR=1000
+
+	#pega a posicao do ERRO la no vetor resultante que vem do DEF Get_indice_Sub_Obj_rule_1(doc)
+	if (vetor[3] == ERROR):
+		print ("entrou aqui 1.flag")
+		print ("R1- ERROR")
+		
+		return False
+		
+	else:
+		#Deu CERTO
+		indice_verbo2 = vetor[0]
+		indice_sujeito2=vetor[1]
+		indice_objeto2= vetor[2]
+		
+		if (indice_sujeito2<indice_objeto2 and indice_objeto2<indice_verbo2):
+			#regra 1
+			print("Regra 6")
+			print("Sentença: "+ sent)
+			print("-------------------------")
+			print("Indica-se uma Tarefa ")
+			print("-------------------------")
+			return True
+		else:
+			print ("R1- ERROR")
+			return False
+
+def Check_vetor_rule_11 (vetor):
+	ERROR=1000
+
+	#pega a posicao do ERRO la no vetor resultante que vem do DEF Get_indice_Sub_Obj_rule_1(doc)
+	if (vetor[3] == ERROR):
+		print ("entrou aqui 1.flag")
+		print ("R1- ERROR")
+		
+		return False
+		
+	else:
+		#Deu CERTO
+		indice_verbo_left = vetor[0]
+		indice_verbo_right=vetor[1]
+		indice_objeto_right= vetor[2]
+		#[indice_verbo_left,indice_verbo_right,indice_objeto_right,ERROR]
+		if (indice_verbo_right< indice_objeto_right):
+			#regra 1
+			print("Regra 11")
+			print("Sentença: "+ sent)
+			print("-------------------------")
+			print("Indica-se uma Tarefa ")
+			print("-------------------------")
+			return True
+		else:
+			print ("R1- ERROR")
+			return False
+
+def Execute_Rules_Activity(doc):		
+	
 	flag=1
 	ERROR=1000
 	flag2=1
-	while control == 1:
-		#	--------REGRA 1 ------------------- SVO
-		if (flag==1):
-			flag2=1
-			vetor_result_indice_rule1= Get_indice_Sub_Obj_rule_1(doc)
-			
-			if (vetor_result_indice_rule1[3] == ERROR):
-					print ("entrou aqui 1.flag")
-					print ("R1- ERROR")
-					flag2 =2
-			
-			if (flag2==1):	
-
-				indice_verbo2 = vetor_result_indice_rule1[0]
-				indice_sujeito2=vetor_result_indice_rule1[1]
-				indice_objeto2= vetor_result_indice_rule1[2]
-				
-				if (indice_sujeito2<indice_verbo2 and indice_verbo2<indice_objeto2):
-					#regra 1
-					print("Regra do SVO")
-					print("Sentença: "+ sent)
-					print("Indica-se uma Tarefa ")
-					flag =2
-					break
+	flag3=1
+	Activity=False
+	#--------REGRA 1 ------------------- SVO
+	if (flag==1):
+		vetor_result_indice_rule1= Get_indice_Sub_Obj_rule_1(doc)		
+		Result_rule_1 = Check_vetor_rule_1 (vetor_result_indice_rule1) 
+		if (Result_rule_1 == True):
+				#ACTIVITY_RULE_1= ACTIVITY_RULE_1+1
+				Activity=True
+				flag=2
+				return Activity			
+	#--------REGRA 2 ------------------- S + WILL + VERB+OBJ	
+	if (flag==1):
 		
-		#--------REGRA 2 ------------------- S + WILL + VERB+OBJ
+		vetor_result_indice_rule2 = Get_indice_Sub_Obj_rule_2(doc)	
+		Result_rule_2= Check_vetor_rule_2 (vetor_result_indice_rule2)
+		if (Result_rule_2 == True):
+				#ACTIVITY_RULE_1= ACTIVITY_RULE_1+1
+				Activity=True
+				flag=2
+				return Activity	
+	#--------REGRA 3 ------------------- <Verb>+<article>+<Obj>
+	
+	if (flag==1):
+		vetor_result_indice_rule3= Get_indice_Sub_Obj_rule_3(doc)
+		Result_rule_3= Check_vetor_rule_3 (vetor_result_indice_rule3)
+		if (Result_rule_3 == True):
+				#ACTIVITY_RULE_1= ACTIVITY_RULE_1+1
+				Activity=True
+				flag=2
+				return Activity
 
+	#--------REGRA 4 ------------------- < Sujeito> + <verb> + <obj> [and,or] + <verb> + <obj>
+	if (flag==1):
 		
-		if (flag==1):
-			flag2=1
-			vetor_result_indice_rule2 = Get_indice_Sub_Obj_rule_2(doc)	
-			if (vetor_result_indice_rule2[4] == ERROR):
-					print ("entrou aqui 2.flag")
-					print ("R2- ERROR")
-					flag2 =2
+		result_rule_4= Get_rule_4(doc)
+		
+		if (result_rule_4 ==True):
+			print("Regra do Sujeito> + <verb> + <obj> [and,or] + <verb> + <obj>")
+			print("Sentença: "+ sent)
+			print("-------------------------")
 			
-			if (flag2==1):
-				indice_verbo2 = vetor_result_indice_rule2 [0]
-				indice_sujeito2 =vetor_result_indice_rule2 [1]
-				indice_objeto2=vetor_result_indice_rule2 [2]
-				indice_will = vetor_result_indice_rule2 [3]
-				
-				if (indice_sujeito2<indice_will and indice_will < indice_verbo2 and indice_verbo2 < indice_objeto2):
-					print("Regra do WILL")
-					print ("Sentença: "+ sent)
-					print ("Indica-se uma Tarefa ") 
-					flag =2
-					break
+			print("-------------------------")
+			flag=2
+			Activity=True
+			return Activity
+	
+	#-----------REGRA 6 do .DOC -----------------------------------------------
+	if (flag==1):
+		vetor_result_indice_rule6 =Get_rule_6 (doc)
+		result_rule_6 = Check_vetor_rule_6 (vetor_result_indice_rule6)
+		if (result_rule_6==True):
+				Activity=True
+				flag=2
+				return Activity
+# ------------ Regra 11 do .Doc -------------------------
+	if (flag==1):
+		print ("entrou aqi 11")
+		vetor_result_indice_rule11 =Get_rule_11 (doc)
+		result_rule_11 = Check_vetor_rule_11 (vetor_result_indice_rule11)
+		if (result_rule_11==True):
+				print ("11	<Subject (ocult)>+<Verb> + [and,or]+ <verb> + <obj>")
+				Activity=True
+				flag=2
+				return Activity
 
+
+	if (Activity==False):		
+		print("Sentença: "+ sent+"---> Não definida pelo protótipo")
+
+	
 
 		
+#-------------------------------------------------------TESTES AQUIIIII--------------------------------------------------------------
 
-		#--------REGRA 3 ------------------- <Verb>+<article>+<Obj>
-		
-		if (flag==1):
-			vetor_result_indice_rule3= Get_indice_Sub_Obj_rule_3(doc)
-			print("vai testar aqui")
-			print (str(vetor_result_indice_rule3[0]))
-			print (str(vetor_result_indice_rule3[1]))
-			print (str(vetor_result_indice_rule3[2]))
-			print (str(vetor_result_indice_rule3[3]))
-			flag2=1
-			if (vetor_result_indice_rule3[3] == ERROR):
-					print ("entrou aqui 3.flag")
-					print ("R3- ERROR")
-					flag2 =2
-			
-			if (flag2==1):	
+def Testes_Aqui  (doc):
+	for word in doc:
+		#print ("teste= "+ word.pos_)
+		print("dep->"+word.text_with_ws + " <- "  + word.head.text_with_ws + " ("  + word.dep_ + ")" )
+			#Aqui eu comparo se a palavra é ela mesma e se ela é "root" ou seja, o verbo principal da sentenca
+		print ("tag->"+word.text_with_ws + " <- " + " ("  + word.tag_ + ")" )
+		if (word.text_with_ws in (word.head.text_with_ws) and  word.dep_ in ('ROOT')):
+			Main_Verb1=word
 
-				indice_verbo3 = vetor_result_indice_rule3[0]
-				indice_article3=vetor_result_indice_rule3[1]
-				indice_objeto3= vetor_result_indice_rule3[2]
-
-				if (indice_verbo3<indice_article3 and indice_article3<indice_objeto3):
-					print("Regra do VAO")
-					print("Sentença: "+ sent)
-					print("Indica-se uma Tarefa ")
-					flag =2
-					break
-
-		else:
-			print("Sentença: "+ sent+"---> Não definida pelo protótipo")
-			break
-
+	print ("MAIN VERG-> "+str (Main_Verb1.text_with_ws))
+	print ("TAG- MAIN VERB->"+ str(Main_Verb1.tag_))
+	
 #-------------------------------------------------------MAIN--------------------------------------------------------------
 
 i=0
+
 for sent in sentences:
 	
 	print ("--")
 	print ("Sentenca " + str(i) + " inicial: "+ sent)
-	doc = nlp(str(sent.replace(".","").replace("\n","")))
+	#-------------------NOTEBOOK-----------------------------------
+	
+	sent = sent.replace(".","").replace("\n","")
+	sent = (u'The first activity is to check and repair the hardware.')
+	#sent = (u'repair the hardware.')
+	doc = nlp(sent)
+	#------------------PC UFRGS -----------------------------------
+	#doc = nlp(str(sent.replace(".","").replace("\n","")))
+	#--------------------------------------------------------------
 	i=i+1
 	
 
+
+	Testes_Aqui (doc)
+	'''
 	for w in doc:
 		print (w.text_with_ws+"- "+str (w.dep_))
+		if w.dep_ in 'ROOT':
+			print (w.text_with_ws+"-tag->"+ str(w.tag_))
+		#print ("tag->"+w.text_with_ws+"- "+str (w.tag_))
+	'''
 
 	TIPO_SENTENCA_XOR = 1
 	TIPO_SENTENCA_AND = 2    
@@ -426,6 +809,10 @@ for sent in sentences:
 	TIPO_SENTENCA_Activity = 4
 	TIPO_SENTENCA_Event = 5
 
+	Activity = False
+	Event = False
+	Xor= False
+	And=False
 	
 	type_of_sentence = get_type_senteces(doc)
 
@@ -439,7 +826,10 @@ for sent in sentences:
 	    Go_Rule_AND(doc)
 	else:
 	    Go_Rules_Activity_Event(doc)
-	    
+
+
+
+
 	
 
 
