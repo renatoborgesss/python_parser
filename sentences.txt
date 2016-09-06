@@ -1,1 +1,5 @@
+<<<<<<< HEAD
 The secretary will send to dispatch
+=======
+a document.
+>>>>>>> origin/master

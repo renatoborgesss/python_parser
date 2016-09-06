@@ -102,6 +102,7 @@ def Go_Rules_Activity_Event(doc):
 	Main_Verb = Definition_Main_Verb_Activity_or_Event (doc)
 	Result_Verb_Tense = Definition_Verb_tense_Main_Verb(Main_Verb) 
 	if (Result_Verb_Tense == TIPO_SENTENCA_Activity):
+<<<<<<< HEAD
 		if (Execute_Rules_Activity (doc)==True):
 			print ("Is Activity")
 		
@@ -110,6 +111,13 @@ def Go_Rules_Activity_Event(doc):
 		Go_Rules_Event (doc)
 		print("Is Event")
 	#Não Fiz aqui
+=======
+		Go_Rules_Activity (doc)
+		#FAZENDO AQUI
+	else:
+		Go_Rules_Event (doc)
+	#PAREI AQUI
+>>>>>>> origin/master
 
 
         
@@ -132,10 +140,14 @@ def Definition_Verb_tense_Main_Verb (Main_Verb):
 	#VBP Verb, non-3rd person singular present
 	# VBZ Verb, 3rd person singular present
 	    
+<<<<<<< HEAD
 	print ("MAIN VERG-> "+str (Main_Verb.text_with_ws))
 	print ("TAG- MAIN VERB->"+ str(Main_Verb.tag_))
 	if (Main_Verb.tag_ == "VBP" or Main_Verb.tag_ == "VBZ" or Main_Verb.tag_ == "VB"):
 		
+=======
+	if (Main_Verb.tag_ == "VBP" or Main_Verb.tag_ == "VBZ" or Main_Verb.tag_ == "VB"):
+>>>>>>> origin/master
 		return TIPO_SENTENCA_Activity
 	elif (Main_Verb.tag_ == "VBD" or Main_Verb.tag_ == "VBN" ):
 		return TIPO_SENTENCA_Event
@@ -186,6 +198,7 @@ def Get_indice_Sub_Obj_rule_1 (doc):
 					print ("verbo: " + doc[indice].head.text_with_ws)
 					print ("-->" + w.text_with_ws)
 		
+<<<<<<< HEAD
 			
 	# verificar se há conjunção na frase, se houver entao nao é esta regra e sim a regra 4
 	Rule4=False;
@@ -195,6 +208,10 @@ def Get_indice_Sub_Obj_rule_1 (doc):
 			Rule4= True
 
 	if (indice_verbo==None or indice_sujeito==None or indice_objeto==None or Rule4==True):
+=======
+			#achar_verbo_arvore(word.head)
+	if (indice_verbo==None or indice_sujeito==None or indice_objeto==None):
+>>>>>>> origin/master
 		result_indice = [indice_verbo,indice_sujeito,indice_objeto,ERROR]
 	else:
 		result_indice = [indice_verbo,indice_sujeito,indice_objeto,-1]
@@ -307,7 +324,11 @@ def Get_indice_Sub_Obj_rule_3(doc):
 			indice_objeto=indice
 			for w in doc[indice].subtree:
 				if w.dep_ in ('dobj', 'iobj'):
+<<<<<<< HEAD
 					print ("entrou aqui 3.3")
+=======
+					print ("entrou aqui 4.4")
+>>>>>>> origin/master
 					print ("verbo: " + doc[indice].head.text_with_ws)
 					#print ("-->" + w.text_with_ws)
 					break
@@ -328,6 +349,7 @@ def Get_indice_Sub_Obj_rule_3(doc):
 		result_indice = [indice_verbo,indice_article,indice_objeto,-1]
 	return result_indice
 
+<<<<<<< HEAD
 def Get_rule_4(doc):
 	
 	ERROR=1000
@@ -557,10 +579,107 @@ def Testes_Aqui  (doc):
 
 i=0
 
+=======
+def Go_Rules_Activity(doc):	
+	
+	
+	control=1
+	flag=1
+	ERROR=1000
+	flag2=1
+	while control == 1:
+		#	--------REGRA 1 ------------------- SVO
+		if (flag==1):
+			flag2=1
+			vetor_result_indice_rule1= Get_indice_Sub_Obj_rule_1(doc)
+			
+			if (vetor_result_indice_rule1[3] == ERROR):
+					print ("entrou aqui 1.flag")
+					print ("R1- ERROR")
+					flag2 =2
+			
+			if (flag2==1):	
+
+				indice_verbo2 = vetor_result_indice_rule1[0]
+				indice_sujeito2=vetor_result_indice_rule1[1]
+				indice_objeto2= vetor_result_indice_rule1[2]
+				
+				if (indice_sujeito2<indice_verbo2 and indice_verbo2<indice_objeto2):
+					#regra 1
+					print("Regra do SVO")
+					print("Sentença: "+ sent)
+					print("Indica-se uma Tarefa ")
+					flag =2
+					break
+		
+		#--------REGRA 2 ------------------- S + WILL + VERB+OBJ
+
+		
+		if (flag==1):
+			flag2=1
+			vetor_result_indice_rule2 = Get_indice_Sub_Obj_rule_2(doc)	
+			if (vetor_result_indice_rule2[4] == ERROR):
+					print ("entrou aqui 2.flag")
+					print ("R2- ERROR")
+					flag2 =2
+			
+			if (flag2==1):
+				indice_verbo2 = vetor_result_indice_rule2 [0]
+				indice_sujeito2 =vetor_result_indice_rule2 [1]
+				indice_objeto2=vetor_result_indice_rule2 [2]
+				indice_will = vetor_result_indice_rule2 [3]
+				
+				if (indice_sujeito2<indice_will and indice_will < indice_verbo2 and indice_verbo2 < indice_objeto2):
+					print("Regra do WILL")
+					print ("Sentença: "+ sent)
+					print ("Indica-se uma Tarefa ") 
+					flag =2
+					break
+
+
+		
+
+		#--------REGRA 3 ------------------- <Verb>+<article>+<Obj>
+		
+		if (flag==1):
+			vetor_result_indice_rule3= Get_indice_Sub_Obj_rule_3(doc)
+			print("vai testar aqui")
+			print (str(vetor_result_indice_rule3[0]))
+			print (str(vetor_result_indice_rule3[1]))
+			print (str(vetor_result_indice_rule3[2]))
+			print (str(vetor_result_indice_rule3[3]))
+			flag2=1
+			if (vetor_result_indice_rule3[3] == ERROR):
+					print ("entrou aqui 3.flag")
+					print ("R3- ERROR")
+					flag2 =2
+			
+			if (flag2==1):	
+
+				indice_verbo3 = vetor_result_indice_rule3[0]
+				indice_article3=vetor_result_indice_rule3[1]
+				indice_objeto3= vetor_result_indice_rule3[2]
+
+				if (indice_verbo3<indice_article3 and indice_article3<indice_objeto3):
+					print("Regra do VAO")
+					print("Sentença: "+ sent)
+					print("Indica-se uma Tarefa ")
+					flag =2
+					break
+
+		else:
+			print("Sentença: "+ sent+"---> Não definida pelo protótipo")
+			break
+
+#-------------------------------------------------------MAIN--------------------------------------------------------------
+
+i=0
+>>>>>>> origin/master
 for sent in sentences:
 	
 	print ("--")
 	print ("Sentenca " + str(i) + " inicial: "+ sent)
+<<<<<<< HEAD
 	#-------------------NOTEBOOK-----------------------------------
 	
 	sent = sent.replace(".","").replace("\n","")
@@ -581,6 +700,14 @@ for sent in sentences:
 			print (w.text_with_ws+"-tag->"+ str(w.tag_))
 		#print ("tag->"+w.text_with_ws+"- "+str (w.tag_))
 	'''
+=======
+	doc = nlp(str(sent.replace(".","").replace("\n","")))
+	i=i+1
+	
+
+	for w in doc:
+		print (w.text_with_ws+"- "+str (w.dep_))
+>>>>>>> origin/master
 
 	TIPO_SENTENCA_XOR = 1
 	TIPO_SENTENCA_AND = 2    
@@ -588,10 +715,13 @@ for sent in sentences:
 	TIPO_SENTENCA_Activity = 4
 	TIPO_SENTENCA_Event = 5
 
+<<<<<<< HEAD
 	Activity = False
 	Event = False
 	Xor= False
 	And=False
+=======
+>>>>>>> origin/master
 	
 	type_of_sentence = get_type_senteces(doc)
 
@@ -605,10 +735,14 @@ for sent in sentences:
 	    Go_Rule_AND(doc)
 	else:
 	    Go_Rules_Activity_Event(doc)
+<<<<<<< HEAD
 
 
 
 
+=======
+	    
+>>>>>>> origin/master
 	
 
 
